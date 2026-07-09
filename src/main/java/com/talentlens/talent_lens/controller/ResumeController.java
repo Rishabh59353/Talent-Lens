@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.talentlens.talent_lens.model.AnalysisResponse;
+import com.talentlens.talent_lens.model.JobMatch;
+import com.talentlens.talent_lens.service.JobRecommendationService;
 import com.talentlens.talent_lens.service.PDFBoxExtractor;
 import com.talentlens.talent_lens.service.ResumeService;
 
@@ -28,39 +31,39 @@ public class ResumeController {
 	
 	private final PDFBoxExtractor pdfExtractor;
     private final ResumeService resumeService;
+    private final JobRecommendationService jobRecommendationService;
 
     public ResumeController(PDFBoxExtractor pdfExtractor,
-                            ResumeService resumeService) {
+                            ResumeService resumeService,
+                            JobRecommendationService jobRecommendationService) {
         this.pdfExtractor = pdfExtractor;
         this.resumeService = resumeService;
+        this.jobRecommendationService = jobRecommendationService;
     }
 	
     // Upload PDF and extract skills
     @PostMapping("/upload")
-    public List<String> uploadResume(@RequestParam MultipartFile pdfFile) {
+    public AnalysisResponse uploadResume(@RequestParam MultipartFile pdfFile) {
         try {
-            // Save uploaded file temporarily
             File tempFile = File.createTempFile("resume-", ".pdf");
             pdfFile.transferTo(tempFile);
-            
-            // Extract text from PDF
+
             String text = pdfExtractor.extractTextFromFile(tempFile);
-            
-            if (text == null) {
-                return List.of(); // Return empty list if extraction failed
-            }
-            
-            // Extract skills from text
-            List<String> skills = resumeService.extractSkills(text);
-            
-            // Delete temp file
+
             tempFile.delete();
-            
-            return skills;
+
+            if (text == null) {
+                return new AnalysisResponse(List.of(), List.of());
+            }
+
+            List<String> skills = resumeService.extractSkills(text);
+            List<JobMatch> recommendedJobs = jobRecommendationService.recommendJobs(skills);
+
+            return new AnalysisResponse(skills, recommendedJobs);
+
         } catch (Exception e) {
-            System.err.println("Error processing resume: " + e.getMessage());
             e.printStackTrace();
-            return List.of();
+            return new AnalysisResponse(List.of(), List.of());
         }
     }
 }

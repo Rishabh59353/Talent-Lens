@@ -41,43 +41,61 @@
         </div>
     </div>
     
-    <script>
-        async function uploadResume() {
-            const file = document.getElementById('pdfFile').files[0];
-            if (!file) {
-                alert('Please select a PDF file!');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('pdfFile', file);
-            
-            // Show loading
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('results').style.display = 'none';
-            
-            try {
-                const response = await fetch('/api/resume/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const skills = await response.json();
-                
-                // Display skills
-                const skillsHtml = skills.map(skill => 
-                    '<span class="badge bg-primary skill-badge">' + skill + '</span>'
-                ).join('');
-                document.getElementById('skillsList').innerHTML = skillsHtml;
-                
-                // Show results
-                document.getElementById('results').style.display = 'block';
-                document.getElementById('loading').style.display = 'none';
-            } catch (error) {
-                alert('Error: ' + error.message);
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-    </script>
+	<script>
+	    async function uploadResume() {
+	        const file = document.getElementById('pdfFile').files[0];
+	        if (!file) {
+	            alert('Please select a PDF file!');
+	            return;
+	        }
+
+	        const formData = new FormData();
+	        formData.append('pdfFile', file);
+
+	        document.getElementById('loading').style.display = 'block';
+	        document.getElementById('results').style.display = 'none';
+
+	        try {
+	            const response = await fetch('/api/resume/upload', {
+	                method: 'POST',
+	                body: formData
+	            });
+
+	            const data = await response.json();
+
+	            const skillsHtml = data.skills.map(skill =>
+	                '<span class="badge bg-primary skill-badge">' + skill + '</span>'
+	            ).join('');
+
+	            document.getElementById('skillsList').innerHTML = skillsHtml;
+
+	            let jobsHtml = '';
+	            data.recommendedJobs.forEach(item => {
+	                jobsHtml += `
+	                    <div class="card mb-3 p-3">
+	                        <h5>${item.job.title}</h5>
+	                        <p class="mb-1"><strong>Company:</strong> ${item.job.company}</p>
+	                        <p class="mb-1"><strong>Domain:</strong> ${item.job.domain}</p>
+	                        <p class="mb-1"><strong>Match Score:</strong> ${item.matchScore}%</p>
+	                        <div class="progress">
+	                            <div class="progress-bar bg-success" role="progressbar" 
+	                                 style="width: ${item.matchScore}%;">
+	                                ${item.matchScore}%
+	                            </div>
+	                        </div>
+	                    </div>
+	                `;
+	            });
+
+	            document.getElementById('jobsList').innerHTML = jobsHtml;
+	            document.getElementById('results').style.display = 'block';
+	            document.getElementById('loading').style.display = 'none';
+
+	        } catch (error) {
+	            alert('Error: ' + error.message);
+	            document.getElementById('loading').style.display = 'none';
+	        }
+	    }
+	</script>
 </body>
 </html>
